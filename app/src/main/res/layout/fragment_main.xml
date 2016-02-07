@@ -15,35 +15,35 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="30dp"
-        android:text="Hello World!" />
+        android:text="" />
 
     <TextView
         android:id="@+id/accelerometerText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="30dp"
-        android:text="Hello World!" />
+        android:text="" />
 
     <TextView
         android:id="@+id/altimeterText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="30dp"
-        android:text="Hello World!" />
+        android:text="" />
 
     <TextView
         android:id="@+id/GSRText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="30dp"
-        android:text="Hello World!" />
+        android:text="" />
 
     <TextView
         android:id="@+id/RR_intervalText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="30dp"
-        android:text="Hello World!" />
+        android:text="" />
 
     <TextView
         android:id="@+id/errorText"

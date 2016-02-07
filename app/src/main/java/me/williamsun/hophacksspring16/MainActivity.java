@@ -1,16 +1,20 @@
 package me.williamsun.hophacksspring16;
 
 import android.app.Activity;
+import android.app.NotificationManager;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.telephony.SmsManager;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
-import android.telephony.SmsManager;
 
 import com.microsoft.band.BandClient;
 import com.microsoft.band.BandClientManager;
@@ -44,6 +48,10 @@ public class MainActivity extends AppCompatActivity {
 
     public enum SensorData {
         HEART_RATE, ACCELEROMETER, ALTIMETER, GSR, RR_INTERVAL, ERROR_TEXT
+    }
+
+    public enum HealthEvents {
+        FALL, CRASH, CARDIAC_ARREST
     }
 
     private BandHeartRateEventListener mHeartRateEventListener = new BandHeartRateEventListener() {
@@ -93,6 +101,8 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    NotificationCompat.Builder mBuilder;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -100,14 +110,14 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        smsManager =     SmsManager.getDefault();
+        smsManager = SmsManager.getDefault();
 
         //But do I actually need a FAB
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                smsManager.sendTextMessage("+19149604822", null, "Will is Sad :(", null, null);
+                sendAlert(HealthEvents.CARDIAC_ARREST);
             }
         });
 
@@ -405,6 +415,41 @@ public class MainActivity extends AppCompatActivity {
             }
             return null;
         }
+    }
+
+    private void sendAlert(HealthEvents he){
+        if(he.equals(HealthEvents.CARDIAC_ARREST)){
+            mBuilder =
+                    new NotificationCompat.Builder(this)
+                            .setSmallIcon(R.mipmap.ic_launcher)
+                            .setContentTitle("Cardiac arrest")
+                            .setContentText("Risk of cardiac arrest detected");
+        } else if (he.equals(HealthEvents.CRASH)){
+            mBuilder =
+                    new NotificationCompat.Builder(this)
+                            .setSmallIcon(R.mipmap.ic_launcher)
+                            .setContentTitle("Car crash")
+                            .setContentText("Car crash detected");
+        } else if (he.equals(HealthEvents.FALL)){
+            mBuilder =
+                    new NotificationCompat.Builder(this)
+                            .setSmallIcon(R.mipmap.ic_launcher)
+                            .setContentTitle("Fall")
+                            .setContentText("Fall detected");
+        }
+        // Sets an ID for the notification
+        int mNotificationId = 001;
+
+        // Gets an instance of the NotificationManager service
+        NotificationManager mNotifyMgr =
+                (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
+        //Get alarm sound and set it
+        Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        mBuilder.setSound(alarmSound);
+
+        // Builds the notification and issues it.
+        mNotifyMgr.notify(mNotificationId, mBuilder.build());
     }
 
 
