@@ -11,9 +11,11 @@ import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.telephony.SmsManager;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.microsoft.band.BandClient;
@@ -37,11 +39,14 @@ import com.microsoft.band.sensors.HeartRateConsentListener;
 import com.microsoft.band.sensors.SampleRate;
 
 import java.lang.ref.WeakReference;
+import java.text.DecimalFormat;
 
 public class MainActivity extends AppCompatActivity {
 
     private BandClient client = null;
     private TextView heartStatus, accelX, accelY, accelZ, altimeterStatus, GSRStatus, RRStatus, errorStatus;
+    private LinearLayout heartrateLL, altimLL, gsrLL, accelLL, rrIntLL;
+    private CappedQueue aXCQ, aYCQ, aZCQ, hrCQ, rrCQ;
 
     private final String LOG_TAG = MainActivity.class.getSimpleName();
     SmsManager smsManager;
@@ -54,11 +59,38 @@ public class MainActivity extends AppCompatActivity {
         FALL, CRASH, CARDIAC_ARREST
     }
 
+    public enum SensorLayout {
+        HEART_RATE, ACCELEROMETER, ALTIMETER, GSR, RR_INTERVAL
+    }
+
+    int lastCrash = 0;
+
     private BandHeartRateEventListener mHeartRateEventListener = new BandHeartRateEventListener() {
         @Override
         public void onBandHeartRateChanged(final BandHeartRateEvent event) {
             if (event != null) {
-                appendToUI(SensorData.HEART_RATE, "" + event.getHeartRate());
+                int heartrate = event.getHeartRate();/*
+                int heartCol = 0xFFB2B2B2;
+                if (heartrate < 30 || heartrate > 205) {
+                    heartCol = 0xFFF44336;
+                } else if (heartrate < 40 || heartrate > 190) {
+                    heartCol = 0xFFFF9800;
+                } else if (heartrate < 50 || heartrate > 160) {
+                    heartCol = 0xFFFFEB3B;
+                } else if (heartrate < 59 || heartrate > 100) {
+                    heartCol = 0xFF8BC34A;
+                } else {
+                    heartCol = 0xFF4CAF50;
+                }
+                setViewColor(SensorLayout.HEART_RATE, heartCol);*/
+                hrCQ.insert(heartrate);
+                if(hrCQ.added > 10){
+                    if(event_cardiac()){
+                        sendAlert(HealthEvents.CARDIAC_ARREST);
+                    }
+                }
+                appendToUI(SensorData.HEART_RATE, "" + heartrate);
+
             }
         }
     };
@@ -67,8 +99,33 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onBandAccelerometerChanged(final BandAccelerometerEvent event) {
             if (event != null) {
-                appendToUI(SensorData.ACCELEROMETER, event.getAccelerationX() + " " +
-                        event.getAccelerationY() + " "  + event.getAccelerationZ());
+                float aX = event.getAccelerationX();
+                float aY = event.getAccelerationY();
+                float aZ = event.getAccelerationZ();
+
+                aXCQ.insert(aX);
+                aYCQ.insert(aY);
+                aZCQ.insert(aZ);
+                if(aXCQ.added > 50) {
+                    double crashNum = Math.sqrt(Math.pow(aY, 2) + Math.pow(aX, 2));
+                    if (crashNum > 14) {
+                        Log.d(LOG_TAG, "Crash Detected with crashNum " + crashNum);
+                        sendAlert(HealthEvents.CRASH);
+                    } else if(lastCrash == 0){
+                        if(event_fallen()){
+                        sendAlert(HealthEvents.FALL);
+                        lastCrash = 50;}
+                    } else {
+                        lastCrash--;
+                    }
+
+
+                } else {
+                    Log.d(LOG_TAG, "Still not enough accelerometer data");
+                }
+
+                appendToUI(SensorData.ACCELEROMETER, aX + " " +
+                        aY + " "  + aZ);
             }
         }
     };
@@ -96,7 +153,9 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onBandRRIntervalChanged(final BandRRIntervalEvent event) {
             if (event != null) {
-                appendToUI(SensorData.RR_INTERVAL, "" + event.getInterval());
+                double rrInt = event.getInterval();
+                rrCQ.insert(rrInt);
+                appendToUI(SensorData.RR_INTERVAL, "" + rrInt);
             }
         }
     };
@@ -112,7 +171,12 @@ public class MainActivity extends AppCompatActivity {
 
         smsManager = SmsManager.getDefault();
 
-        //But do I actually need a FAB
+        aXCQ = new CappedQueue();
+        aYCQ = new CappedQueue();
+        aZCQ = new CappedQueue();
+        hrCQ = new CappedQueue();
+        rrCQ = new CappedQueue();
+
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -128,6 +192,12 @@ public class MainActivity extends AppCompatActivity {
         altimeterStatus = (TextView) findViewById(R.id.altimeterText);
         GSRStatus = (TextView) findViewById(R.id.GSRText);
         RRStatus = (TextView) findViewById(R.id.RRIntervalText);
+
+        heartrateLL = (LinearLayout) findViewById(R.id.Heartrate);
+        altimLL = (LinearLayout) findViewById(R.id.Altimeter);
+        gsrLL = (LinearLayout) findViewById(R.id.GSR);
+        accelLL = (LinearLayout) findViewById(R.id.Accel);
+        rrIntLL = (LinearLayout) findViewById(R.id.RRInt);
 
         final WeakReference<Activity> reference = new WeakReference<Activity>(this);
         new HeartRateSubscriptionTask().execute();
@@ -249,7 +319,7 @@ public class MainActivity extends AppCompatActivity {
                         exceptionMessage = "Microsoft Health BandService is not available. Please make sure Microsoft Health is installed and that you have the correct permissions.\n";
                         break;
                     default:
-                        exceptionMessage = "Unknown error occured: " + e.getMessage() + "\n";
+                        exceptionMessage = "Unknown error occurred: " + e.getMessage() + "\n";
                         break;
                 }
                 appendToUI(SensorData.ERROR_TEXT, exceptionMessage);
@@ -287,7 +357,7 @@ public class MainActivity extends AppCompatActivity {
                         exceptionMessage = "Microsoft Health BandService is not available. Please make sure Microsoft Health is installed and that you have the correct permissions.\n";
                         break;
                     default:
-                        exceptionMessage = "Unknown error occured: " + e.getMessage() + "\n";
+                        exceptionMessage = "Unknown error occurred: " + e.getMessage() + "\n";
                         break;
                 }
                 appendToUI(SensorData.ERROR_TEXT, exceptionMessage);
@@ -325,7 +395,7 @@ public class MainActivity extends AppCompatActivity {
                         exceptionMessage = "Microsoft Health BandService is not available. Please make sure Microsoft Health is installed and that you have the correct permissions.\n";
                         break;
                     default:
-                        exceptionMessage = "Unknown error occured: " + e.getMessage() + "\n";
+                        exceptionMessage = "Unknown error occurred: " + e.getMessage() + "\n";
                         break;
                 }
                 appendToUI(SensorData.ERROR_TEXT, exceptionMessage);
@@ -458,9 +528,9 @@ public class MainActivity extends AppCompatActivity {
 
         // Builds the notification and issues it.
         mNotifyMgr.notify(mNotificationId, mBuilder.build());
-
-        smsManager = SmsManager.getDefault();
-        smsManager.sendTextMessage(phoneNumber, null, message, null, null);
+        //TODO reenable smsManager
+        //smsManager = SmsManager.getDefault();
+        //smsManager.sendTextMessage(phoneNumber, null, message, null, null);
     }
 
 
@@ -473,19 +543,16 @@ public class MainActivity extends AppCompatActivity {
                 if(sd.equals(SensorData.HEART_RATE)){
                     heartStatus.setText(string);
                 } else if(sd.equals(SensorData.ACCELEROMETER)){
+                    final DecimalFormat df = new DecimalFormat();
+                    df.setMaximumFractionDigits(2);
                     String[] s = string.split(" ");
-                    if(s[0].length() < 4){
-                        s[0] += "    ";
-                    }
-                    if(s[1].length() < 4){
-                        s[1] += "    ";
-                    }
-                    if(s[2].length() < 4){
-                        s[2] += "    ";
-                    }
-                    accelX.setText("X: " + s[0].substring(0, 4));
-                    accelY.setText("Y: " + s[1].substring(0, 4));
-                    accelZ.setText("Z: " + s[2].substring(0, 4));
+                    s[0] = df.format(Double.parseDouble(s[0]));
+                    s[1] = df.format(Double.parseDouble(s[1]));
+                    s[2] = df.format(Double.parseDouble(s[2]));
+                    Log.d(LOG_TAG, "X acceleration of " + s[0]);
+                    accelX.setText("X: " + s[0]);
+                    accelY.setText("Y: " + s[1]);
+                    accelZ.setText("Z: " + s[2]);
                 } else if(sd.equals(SensorData.ALTIMETER)){
                     altimeterStatus.setText(string);
                 } else if(sd.equals(SensorData.GSR)){
@@ -497,10 +564,90 @@ public class MainActivity extends AppCompatActivity {
                     }
                     RRStatus.setText(toAdd.substring(0, 4));
                 } else if (sd.equals(SensorData.ERROR_TEXT)){
-                    // TODO MAKE A SNACKBAR
                 }
             }
         });
+    }
+
+    private void setViewColor(SensorLayout sl, int col){
+        if(sl.equals(SensorLayout.ACCELEROMETER)){
+            accelLL.setBackgroundColor(col);
+        } else if(sl.equals(SensorLayout.ALTIMETER)){
+            altimLL.setBackgroundColor(col);
+        } else if(sl.equals(SensorLayout.GSR)){
+            gsrLL.setBackgroundColor(col);
+        } else if(sl.equals(SensorLayout.HEART_RATE)){
+            heartrateLL.setBackgroundColor(col);
+        } else if(sl.equals((SensorLayout.RR_INTERVAL))){
+            rrIntLL.setBackgroundColor(col);
+        }
+    }
+
+    private boolean event_fallen(){
+
+        double[] aXarray = aXCQ.orderedAbs();
+        double[] aYarray = aYCQ.orderedAbs();
+        double[] aZarray = aZCQ.orderedAbs();
+
+        boolean fallCheck = false;
+        boolean impactCheck = false;
+        boolean stillCheck = false;
+
+        double impact = 0;
+
+        int loc = 0;
+
+        /*for (loc = 0; loc < 30; loc++) {
+            if (aXarray[loc] < 0.55) { // near free fall?
+               // Log.d(LOG_TAG, "Fall check worked. " + aXarray[loc]);
+                fallCheck = true;
+                break;
+            }
+        }
+        if(!fallCheck){
+            return false;
+        }*/
+
+        for (int i = loc; i < 5; i++) {
+            double x = Math.pow(Math.pow(aXarray[i], 2) + Math.pow(aYarray[i], 2) + Math.pow(aZarray[i], 2), .5);
+            Log.d(LOG_TAG, "Total impact " + x);
+            if (x >= 4) { // has there been an impact?
+                Log.d(LOG_TAG, "Got it!! -----------------------------");
+                impactCheck = true;
+                break;
+            }
+        }
+
+        if(!impactCheck){
+            return false;
+        }
+
+        double avg = 0.0;
+        for (int i = loc; i < 15; i++) {
+            avg += aXarray[i] + aYarray[i] + aZarray[i];
+        }
+
+        if (avg / 45 < .8 || avg / 45 > 1.2) { // relatively motionless?
+            Log.d(LOG_TAG, "Still check passed. avg " + (avg / 45));
+            stillCheck = true;
+        }
+        if(stillCheck){
+            return true;
+        }
+        return false;
+
+    }
+
+    private boolean event_cardiac(){
+        double hrAvg = hrCQ.average();
+        if(hrAvg > 180 || hrAvg < 50){
+            double dev = rrCQ.deviation();
+            if(dev > 2){
+                Log.d(LOG_TAG, "rrCQ deviation of " + dev);
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean getConnectedBandClient() throws InterruptedException, BandException {
