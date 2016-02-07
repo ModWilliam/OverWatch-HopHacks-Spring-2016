@@ -529,8 +529,8 @@ public class MainActivity extends AppCompatActivity {
         // Builds the notification and issues it.
         mNotifyMgr.notify(mNotificationId, mBuilder.build());
         //TODO reenable smsManager
-        //smsManager = SmsManager.getDefault();
-        //smsManager.sendTextMessage(phoneNumber, null, message, null, null);
+        smsManager = SmsManager.getDefault();
+        smsManager.sendTextMessage(phoneNumber, null, message, null, null);
     }
 
 
@@ -549,7 +549,6 @@ public class MainActivity extends AppCompatActivity {
                     s[0] = df.format(Double.parseDouble(s[0]));
                     s[1] = df.format(Double.parseDouble(s[1]));
                     s[2] = df.format(Double.parseDouble(s[2]));
-                    Log.d(LOG_TAG, "X acceleration of " + s[0]);
                     accelX.setText("X: " + s[0]);
                     accelY.setText("Y: " + s[1]);
                     accelZ.setText("Z: " + s[2]);
@@ -595,8 +594,6 @@ public class MainActivity extends AppCompatActivity {
 
         double impact = 0;
 
-        int loc = 0;
-
         /*for (loc = 0; loc < 30; loc++) {
             if (aXarray[loc] < 0.55) { // near free fall?
                // Log.d(LOG_TAG, "Fall check worked. " + aXarray[loc]);
@@ -608,22 +605,21 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }*/
 
-        for (int i = loc; i < 5; i++) {
-            double x = Math.pow(Math.pow(aXarray[i], 2) + Math.pow(aYarray[i], 2) + Math.pow(aZarray[i], 2), .5);
-            Log.d(LOG_TAG, "Total impact " + x);
-            if (x >= 4) { // has there been an impact?
+            double x = Math.pow(Math.pow(aXarray[0], 2) + Math.pow(aYarray[0], 2) + Math.pow(aZarray[0], 2), .5);
+            if(x > 2){
+                Log.d(LOG_TAG, "Total impact " + x);
+            }
+            if (x >= 3.5) { // has there been an impact?
                 Log.d(LOG_TAG, "Got it!! -----------------------------");
                 impactCheck = true;
-                break;
             }
-        }
 
         if(!impactCheck){
             return false;
         }
 
         double avg = 0.0;
-        for (int i = loc; i < 15; i++) {
+        for (int i = 0; i < 15; i++) {
             avg += aXarray[i] + aYarray[i] + aZarray[i];
         }
 
