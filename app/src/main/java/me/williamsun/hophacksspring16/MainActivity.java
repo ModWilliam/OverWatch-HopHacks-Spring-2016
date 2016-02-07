@@ -605,7 +605,7 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }*/
 
-            double x = Math.pow(Math.pow(aXarray[0], 2) + Math.pow(aYarray[0], 2) + Math.pow(aZarray[0], 2), .5);
+            double x = Math.pow(Math.pow(aXarray[30], 2) + Math.pow(aYarray[30], 2) + Math.pow(aZarray[30], 2), .5);
             if(x > 2){
                 Log.d(LOG_TAG, "Total impact " + x);
             }
@@ -619,7 +619,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         double avg = 0.0;
-        for (int i = 0; i < 15; i++) {
+        for (int i = 31; i < 46; i++) {
             avg += aXarray[i] + aYarray[i] + aZarray[i];
         }
 
