@@ -41,7 +41,7 @@ import java.lang.ref.WeakReference;
 public class MainActivity extends AppCompatActivity {
 
     private BandClient client = null;
-    private TextView heartStatus, accelerometerStatus, altimeterStatus, GSRStatus, RRStatus, errorStatus;
+    private TextView heartStatus, accelX, accelY, accelZ, altimeterStatus, GSRStatus, RRStatus, errorStatus;
 
     private final String LOG_TAG = MainActivity.class.getSimpleName();
     SmsManager smsManager;
@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onBandHeartRateChanged(final BandHeartRateEvent event) {
             if (event != null) {
-                appendToUI(SensorData.HEART_RATE, "Heart rate: " + event.getHeartRate() + " BPM");
+                appendToUI(SensorData.HEART_RATE, "" + event.getHeartRate());
             }
         }
     };
@@ -67,8 +67,8 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onBandAccelerometerChanged(final BandAccelerometerEvent event) {
             if (event != null) {
-                appendToUI(SensorData.ACCELEROMETER, "Acceleration (g's) X: " + event.getAccelerationX() + ", Y: " +
-                        event.getAccelerationY() + ", Z: "  +event.getAccelerationZ());
+                appendToUI(SensorData.ACCELEROMETER, event.getAccelerationX() + " " +
+                        event.getAccelerationY() + " "  + event.getAccelerationZ());
             }
         }
     };
@@ -77,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onBandAltimeterChanged(final BandAltimeterEvent event) {
             if (event != null) {
-                appendToUI(SensorData.ALTIMETER, "Altimeter Rate = " + event.getRate() + " cm/s");
+                appendToUI(SensorData.ALTIMETER, event.getRate() + "");
             }
         }
     };
@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onBandGsrChanged(final BandGsrEvent event) {
             if (event != null) {
-                appendToUI(SensorData.GSR, String.format("Resistance = %d kOhms", event.getResistance()));
+                appendToUI(SensorData.GSR, "" + event.getResistance());
             }
         }
     };
@@ -96,7 +96,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onBandRRIntervalChanged(final BandRRIntervalEvent event) {
             if (event != null) {
-                appendToUI(SensorData.RR_INTERVAL, String.format("RR Interval = %.3f s", event.getInterval()));
+                appendToUI(SensorData.RR_INTERVAL, "" + event.getInterval());
             }
         }
     };
@@ -122,11 +122,12 @@ public class MainActivity extends AppCompatActivity {
         });
 
         heartStatus = (TextView) findViewById(R.id.heartRateText);
-        accelerometerStatus = (TextView) findViewById(R.id.accelerometerText);
+        accelX = (TextView) findViewById(R.id.accelX);
+        accelY = (TextView) findViewById(R.id.accelY);
+        accelZ = (TextView) findViewById(R.id.accelZ);
         altimeterStatus = (TextView) findViewById(R.id.altimeterText);
         GSRStatus = (TextView) findViewById(R.id.GSRText);
-        RRStatus = (TextView) findViewById(R.id.RR_intervalText);
-        errorStatus = (TextView) findViewById(R.id.errorText);
+        RRStatus = (TextView) findViewById(R.id.RRIntervalText);
 
         final WeakReference<Activity> reference = new WeakReference<Activity>(this);
         new HeartRateSubscriptionTask().execute();
@@ -418,24 +419,31 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void sendAlert(HealthEvents he){
+
+        String phoneNumber = "+19149604822"; //Bilal's phone number
+        String message = "Will's health is in poor condition";
+
         if(he.equals(HealthEvents.CARDIAC_ARREST)){
             mBuilder =
                     new NotificationCompat.Builder(this)
                             .setSmallIcon(R.mipmap.ic_launcher)
                             .setContentTitle("Cardiac arrest")
                             .setContentText("Risk of cardiac arrest detected");
+            message += "... a cardiac arrest has been detected";
         } else if (he.equals(HealthEvents.CRASH)){
             mBuilder =
                     new NotificationCompat.Builder(this)
                             .setSmallIcon(R.mipmap.ic_launcher)
                             .setContentTitle("Car crash")
                             .setContentText("Car crash detected");
+            message += "... a vehicular crash has been detected";
         } else if (he.equals(HealthEvents.FALL)){
             mBuilder =
                     new NotificationCompat.Builder(this)
                             .setSmallIcon(R.mipmap.ic_launcher)
                             .setContentTitle("Fall")
                             .setContentText("Fall detected");
+            message += "... a fall has been detected";
         }
         // Sets an ID for the notification
         int mNotificationId = 001;
@@ -450,6 +458,9 @@ public class MainActivity extends AppCompatActivity {
 
         // Builds the notification and issues it.
         mNotifyMgr.notify(mNotificationId, mBuilder.build());
+
+        smsManager = SmsManager.getDefault();
+        smsManager.sendTextMessage(phoneNumber, null, message, null, null);
     }
 
 
@@ -458,18 +469,35 @@ public class MainActivity extends AppCompatActivity {
         this.runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                String toAdd = string;
                 if(sd.equals(SensorData.HEART_RATE)){
                     heartStatus.setText(string);
                 } else if(sd.equals(SensorData.ACCELEROMETER)){
-                    accelerometerStatus.setText(string);
+                    String[] s = string.split(" ");
+                    if(s[0].length() < 4){
+                        s[0] += "    ";
+                    }
+                    if(s[1].length() < 4){
+                        s[1] += "    ";
+                    }
+                    if(s[2].length() < 4){
+                        s[2] += "    ";
+                    }
+                    accelX.setText("X: " + s[0].substring(0, 4));
+                    accelY.setText("Y: " + s[1].substring(0, 4));
+                    accelZ.setText("Z: " + s[2].substring(0, 4));
                 } else if(sd.equals(SensorData.ALTIMETER)){
                     altimeterStatus.setText(string);
                 } else if(sd.equals(SensorData.GSR)){
                     GSRStatus.setText(string);
                 } else if(sd.equals(SensorData.RR_INTERVAL)){
-                    RRStatus.setText(string);
+
+                    if(toAdd.length() < 4){
+                        toAdd += "    ";
+                    }
+                    RRStatus.setText(toAdd.substring(0, 4));
                 } else if (sd.equals(SensorData.ERROR_TEXT)){
-                    errorStatus.setText(string);
+                    // TODO MAKE A SNACKBAR
                 }
             }
         });
