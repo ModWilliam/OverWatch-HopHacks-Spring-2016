@@ -490,7 +490,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void sendAlert(HealthEvents he){
 
-        String phoneNumber = "+19149604822"; //Bilal's phone number
+        //String phoneNumber = ""; //Bilal's phone number
         String message = "Will's health is in poor condition";
 
         if(he.equals(HealthEvents.CARDIAC_ARREST)){
@@ -529,8 +529,8 @@ public class MainActivity extends AppCompatActivity {
         // Builds the notification and issues it.
         mNotifyMgr.notify(mNotificationId, mBuilder.build());
         //TODO reenable smsManager
-        smsManager = SmsManager.getDefault();
-        smsManager.sendTextMessage(phoneNumber, null, message, null, null);
+        //smsManager = SmsManager.getDefault();
+        //smsManager.sendTextMessage(phoneNumber, null, message, null, null);
     }
 
 
