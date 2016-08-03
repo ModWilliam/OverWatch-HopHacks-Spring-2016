@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <CheckBoxPreference
+        android:key="@string/pref_confirm_key"
+        android:title="@string/pref_confirm_label"
+        android:summary="@string/pref_confirm_summary"
+        android:defaultValue="@string/pref_confirm_default"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"/>
+
+    <EditTextPreference
+        android:title="@string/pref_emergency_label"
+        android:key="@string/pref_emergency_key"
+        android:defaultValue="@string/pref_emergency_default"
+        android:inputType="text"
+        android:singleLine="true"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+
+</PreferenceScreen>

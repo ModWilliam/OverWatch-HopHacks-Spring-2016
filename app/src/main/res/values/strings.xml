@@ -1,4 +1,14 @@
 <resources>
     <string name="app_name">OverWatch</string>
     <string name="action_settings">Settings</string>
+
+    <string name="pref_emergency_key">emergency_contact</string>
+    <string name="pref_emergency_default">none</string>
+    <string name="pref_emergency_label">Emergency Contact Number</string>
+
+    <string name="pref_confirm_key">confirm_notify</string>
+    <string name="pref_confirm_default">true</string>
+    <string name="pref_confirm_label">Confirm before notification?</string>
+    <string name="pref_confirm_summary">Choose whether you would like to confirm that you need help on your Band before your emergency contact is texted.</string>
+
 </resources>

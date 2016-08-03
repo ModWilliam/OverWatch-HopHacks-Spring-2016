@@ -2,10 +2,13 @@ package me.williamsun.hophacksspring16;
 
 import android.app.Activity;
 import android.app.NotificationManager;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -17,6 +20,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.microsoft.band.BandClient;
 import com.microsoft.band.BandClientManager;
@@ -50,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
 
     private final String LOG_TAG = MainActivity.class.getSimpleName();
     SmsManager smsManager;
+    String phoneNumber;
 
     public enum SensorData {
         HEART_RATE, ACCELEROMETER, ALTIMETER, GSR, RR_INTERVAL, ERROR_TEXT
@@ -64,6 +69,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     int lastCrash = 0;
+
+    SharedPreferences prefs;
 
     private BandHeartRateEventListener mHeartRateEventListener = new BandHeartRateEventListener() {
         @Override
@@ -169,6 +176,8 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        prefs = PreferenceManager.getDefaultSharedPreferences(this);
+
         smsManager = SmsManager.getDefault();
 
         aXCQ = new CappedQueue();
@@ -231,6 +240,7 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            startActivity(new Intent(this, SettingsActivity.class));
             return true;
         }
 
@@ -490,7 +500,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void sendAlert(HealthEvents he){
 
-        //String phoneNumber = ""; //Bilal's phone number
+        phoneNumber = prefs.getString(getString(R.string.pref_emergency_key), getString(R.string.pref_emergency_default));
+        boolean isTrue = Boolean.getBoolean(prefs.getString(getString(R.string.pref_confirm_key), getString(R.string.pref_confirm_default)));
+        Toast.makeText(getApplicationContext(), phoneNumber + " , " + isTrue, Toast.LENGTH_SHORT).show();
         String message = "Will's health is in poor condition";
 
         if(he.equals(HealthEvents.CARDIAC_ARREST)){
